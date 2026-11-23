@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TiniEET</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">TiniEET <span class="verze" id="verze"></span></div>
+    <span id="fronta" class="pill pill-muted"></span>
+    <a href="/admin" class="btn btn-small">Administrace</a>
+  </header>
+
+  <main>
+    <div class="services" id="sluzby"></div>
+
+  </main>
+
+  <dialog id="dlg-platba">
+    <form id="form-platba" novalidate>
+      <div class="dlg-body">
+        <h2 id="dp-nazev"></h2>
+        <label for="dp-cena">Cena (Kč)</label>
+        <input id="dp-cena" class="big" inputmode="decimal" autocomplete="off">
+        <p class="err-text" id="dp-err"></p>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn-big" data-zavrit>Zrušit</button>
+        <button type="submit" class="btn-primary btn-big">Potvrdit</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <script src="/js/spolecne.js"></script>
+  <script src="/js/pokladna.js"></script>
+</body>
+</html>

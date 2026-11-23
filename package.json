@@ -1,0 +1,19 @@
+{
+  "name": "tinieet",
+  "version": "1.0.0",
+  "description": "system for EET 2.0",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test --test-concurrency=1 test/"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6",
+    "@xmldom/xmldom": "^0.9.12",
+    "node-forge": "^1.4.3",
+    "xml-crypto": "^6.4.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.2"
+  }
+}
