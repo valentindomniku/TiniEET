@@ -1,29 +1,21 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 
-function zobraz(prihlasen) {
-  $('login').hidden = prihlasen;
-  $('obsah').hidden = !prihlasen;
-  $('odhlasit').hidden = !prihlasen;
-  if (prihlasen) nacti();
-  else $('heslo').focus();
-}
+// Administrace ukazuje data firmy vybrané v pokladně (/admin?firma=1).
+const firma = Number(new URLSearchParams(location.search).get('firma')) || nactiFirmu();
+if (!firma) location.replace('/');
 
-/** Volání API s návratem na přihlášení, když vyprší. */
-async function adminApi(method, url, body) {
-  try {
-    return await api(method, url, body);
-  } catch (err) {
-    if (err.status === 401) zobraz(false);
-    throw err;
-  }
-}
+// Změnit firmu = zapomenout výběr a vrátit se na úvodní výběr v pokladně.
+$('zmenit-firmu').onclick = () => {
+  ulozFirmu(null);
+  location.href = '/';
+};
 
 /** Řádek tabulky plateb; pokud je zadáno onStorno, přidá tlačítko Storno. */
 function radekPlatby(p, onStorno) {
   return el('tr', { class: p.puvodni_id ? 'storno' : p.stornovano_id ? 'stornovano' : null },
-    el('td', { text: cas(p.cas_utc) }),
-    el('td', { text: p.puvodni_id ? `Storno: ${p.nazev} (${p.duvod_storna})` : p.nazev }),
+    el('td', { text: cas(p.cas) }),
+    el('td', { text: p.puvodni_id ? `Storno: ${p.nazev}` : p.nazev }),
     el('td', { class: 'num', text: kc(p.castka) }),
     el('td', {}, stavPill(p)),
     el('td', {}, onStorno && !p.puvodni_id && !p.stornovano_id
@@ -34,36 +26,34 @@ function radekPlatby(p, onStorno) {
 function stornoDialog(p, hotovo) {
   const dlg = document.getElementById('dlg-storno');
   const form = document.getElementById('form-storno');
-  const duvod = document.getElementById('ds-duvod');
   const err = document.getElementById('ds-err');
   const idPozadavku = uuid();
   document.getElementById('ds-popis').textContent = `${p.nazev} · ${kc(p.castka)}`;
-  duvod.value = '';
   err.textContent = '';
   form.onsubmit = async (e) => {
     e.preventDefault();
-    if (duvod.value.trim().length < 3) { err.textContent = 'Napište důvod storna.'; return; }
     try {
-      await adminApi('POST', `/api/admin/platby/${p.id}/storno`, { id_pozadavku: idPozadavku, duvod: duvod.value });
+      await api('POST', `/api/admin/platby/${p.id}/storno`, { id_pozadavku: idPozadavku });
       dlg.close();
       toast('Platba stornována');
       hotovo();
     } catch (ex) { err.textContent = ex.message; }
   };
   dlg.showModal();
-  duvod.focus();
 }
 
 async function nacti() {
   try {
     await Promise.all([nactiStav(), nactiPrehled(), nactiSluzby()]);
   } catch (err) {
-    if (err.status !== 401) toast(err.message, 'err');
+    toast(err.message, 'err');
   }
 }
 
 async function nactiStav() {
-  const { eet, neodeslane } = await adminApi('GET', '/api/admin/stav');
+  const { eet, neodeslane } = await api('GET', `/api/admin/stav?firma=${firma}`);
+  $('firma-nazev').textContent = `IČO ${eet.ico}`;
+  ukazFrontu(neodeslane.length);
   const upozorneni = [];
   if (eet.cert && !eet.cert.ok) upozorneni.push(['err', `Certifikát: ${eet.cert.chyba}`]);
   else if (eet.cert && new Date(eet.cert.platnyDo) - Date.now() < 30 * 86400000) {
@@ -76,7 +66,7 @@ async function nactiStav() {
   );
   $('neodeslane').replaceChildren(...(neodeslane.length ? neodeslane.map((p) => el('tr', {},
     el('td', { text: p.id }),
-    el('td', { text: new Date(p.cas_utc).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }) }),
+    el('td', { text: new Date(p.cas).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }) }),
     el('td', { text: p.nazev }),
     el('td', { class: 'num', text: kc(p.castka) }),
     el('td', {}, stavPill(p)),
@@ -88,21 +78,21 @@ async function nactiStav() {
 
 async function znovu(id) {
   try {
-    const p = await adminApi('POST', `/api/admin/platby/${id}/znovu`, {});
+    const p = await api('POST', `/api/admin/platby/${id}/znovu`, {});
     toast(p.stav === 'odeslano' ? 'Odesláno' : `Neodesláno: ${p.chyba}`, p.stav === 'odeslano' ? 'ok' : 'warn');
     nacti();
   } catch (err) { toast(err.message, 'err'); }
 }
 
 async function nactiPrehled() {
-  const { souhrn, platby } = await adminApi('GET', `/api/admin/prehled?datum=${$('datum').value}`);
+  const { souhrn, platby } = await api('GET', `/api/admin/prehled?firma=${firma}&datum=${$('datum').value}`);
   $('trzba').textContent = kc(souhrn.castka);
   $('pocet').textContent = `(${souhrn.pocet} záznamů včetně storen)`;
   $('den-platby').replaceChildren(...platby.map((p) => radekPlatby(p, (x) => stornoDialog(x, nacti))));
 }
 
 async function nactiSluzby() {
-  const { sluzby } = await api('GET', '/api/pokladna');
+  const { sluzby } = await api('GET', `/api/pokladna?firma=${firma}`);
   $('sluzby').replaceChildren(...sluzby.map((s) => {
     const nazev = el('input', { value: s.nazev, maxlength: 100, 'aria-label': 'Název' });
     const cena = el('input', { value: kcPole(s.cena), inputmode: 'decimal', 'aria-label': 'Cena' });
@@ -119,7 +109,7 @@ async function ulozSluzbu(method, url, nazev, cenaText) {
   const cena = parseKc(cenaText);
   if (!nazev.trim() || !cena) { toast('Vyplňte název a platnou cenu', 'err'); return false; }
   try {
-    await adminApi(method, url, { nazev, cena });
+    await api(method, url, { nazev, cena });
     toast('Uloženo');
     nactiSluzby();
     return true;
@@ -129,7 +119,7 @@ async function ulozSluzbu(method, url, nazev, cenaText) {
 async function smazSluzbu(s) {
   if (!confirm(`Smazat službu „${s.nazev}“? Uložené platby zůstanou.`)) return;
   try {
-    await adminApi('DELETE', `/api/admin/sluzby/${s.id}`, {});
+    await api('DELETE', `/api/admin/sluzby/${s.id}`, {});
     nactiSluzby();
   } catch (err) { toast(err.message, 'err'); }
 }
@@ -142,23 +132,7 @@ $('nova-sluzba').onsubmit = async (e) => {
   }
 };
 
-$('login').onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    await api('POST', '/api/admin/login', { heslo: $('heslo').value });
-    $('heslo').value = '';
-    $('login-err').textContent = '';
-    zobraz(true);
-  } catch (err) { $('login-err').textContent = err.message; }
-};
-
-$('odhlasit').onclick = async () => {
-  await api('POST', '/api/admin/logout', {}).catch(() => {});
-  zobraz(false);
-};
-
 $('datum').value = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Prague' });
 $('datum').onchange = () => nactiPrehled().catch((err) => toast(err.message, 'err'));
 
-// Přihlášen? (stav vrátí 401, když ne)
-api('GET', '/api/admin/stav').then(() => zobraz(true), () => zobraz(false));
+if (firma) nacti();

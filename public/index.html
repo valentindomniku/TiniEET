@@ -3,19 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TiniEET</title>
+  <title>TiniEET - Pokladna</title>
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">TiniEET <span class="verze" id="verze"></span></div>
-    <span id="fronta" class="pill pill-muted"></span>
-    <a href="/admin" class="btn btn-small">Administrace</a>
+    <span id="firma-nazev" class="firma" hidden></span>
+    <span id="fronta" class="pill pill-muted" hidden></span>
+    <button type="button" class="btn-small" id="zmenit-firmu" hidden>Změnit IČO</button>
+    <a href="/admin" id="admin-odkaz" class="btn btn-small" hidden>Administrace</a>
   </header>
 
   <main>
-    <div class="services" id="sluzby"></div>
+    <section id="vyber" class="vyber" hidden>
+      <div class="firmy" id="firmy"></div>
+    </section>
 
+    <div class="services" id="sluzby" hidden></div>
   </main>
 
   <dialog id="dlg-platba">

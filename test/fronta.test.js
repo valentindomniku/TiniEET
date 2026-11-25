@@ -2,7 +2,7 @@
 const { describe, it, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 const h = require('./helpers');
-const { odeslat, zpracujFrontu, odstupSekund } = require('../src/fronta');
+const { odeslat, zpracujFrontu } = require('../src/fronta');
 
 describe('Fronta odesílání do EET', () => {
   let app;
@@ -11,7 +11,6 @@ describe('Fronta odesílání do EET', () => {
   after(h.teardown);
 
   const novaPlatba = async () => (await h.request(app).post('/api/platby').send(h.body())).body;
-  const pustitHned = (id) => h.pool.query('UPDATE eet SET dalsi_pokus_utc = NULL WHERE id = ?', [id]);
 
   it('při výpadku internetu platbu uloží a později odešle jako opakované zaslání', async () => {
     h.mock.chovani = () => ({ typ: 'vypadek' });
@@ -19,17 +18,15 @@ describe('Fronta odesílání do EET', () => {
     assert.equal(p.stav, 'ceka');
     assert.equal(p.pokusy, 1);
     assert.match(p.chyba, /výpadek/);
-    assert.ok(p.dalsi_pokus_utc);
 
-    await zpracujFrontu(); // ještě nenastal čas dalšího pokusu
-    assert.equal(h.mock.log.length, 1);
+    await zpracujFrontu(); // internet pořád nejde – zůstává ve frontě
+    assert.equal((await h.platba(p.id)).stav, 'ceka');
 
     h.mock.chovani = () => ({ typ: 'potvrzeni' });
-    await pustitHned(p.id);
     await zpracujFrontu();
     const po = await h.platba(p.id);
     assert.equal(po.stav, 'odeslano');
-    assert.deepEqual(h.mock.log.map((l) => l.prvniZaslani), [true, false]);
+    assert.deepEqual(h.mock.log.map((l) => l.prvniZaslani), [true, false, false]);
     assert.notEqual(h.mock.log[0].uuid, h.mock.log[1].uuid); // nové UUID zprávy pro každý pokus
   });
 
@@ -39,7 +36,6 @@ describe('Fronta odesílání do EET', () => {
     assert.equal(p.stav, 'ceka');
 
     h.mock.chovani = () => ({ typ: 'chyba', kod: 4 });
-    await pustitHned(p.id);
     await zpracujFrontu();
     const po = await h.platba(p.id);
     assert.equal(po.stav, 'chyba');
@@ -50,8 +46,8 @@ describe('Fronta odesílání do EET', () => {
     h.mock.chovani = () => ({ typ: 'chyba', kod: 4 });
     const p = await novaPlatba();
     h.mock.chovani = () => ({ typ: 'potvrzeni' });
-    const a = await h.admin(h.request.agent(app));
-    const stav = (await a.get('/api/admin/stav').expect(200)).body;
+    const a = h.request(app);
+    const stav = (await a.get('/api/admin/stav?firma=1').expect(200)).body;
     assert.equal(stav.neodeslane.length, 1);
     const res = await a.post(`/api/admin/platby/${p.id}/znovu`).send({}).expect(200);
     assert.equal(res.body.stav, 'odeslano');
@@ -61,18 +57,9 @@ describe('Fronta odesílání do EET', () => {
     h.mock.chovani = () => ({ typ: 'vypadek' });
     const p = await novaPlatba();
     h.mock.chovani = () => new Promise((r) => setTimeout(() => r({ typ: 'potvrzeni' }), 50));
-    await pustitHned(p.id);
     const vysledky = await Promise.all([odeslat(p.id), odeslat(p.id), zpracujFrontu()]);
     assert.equal(vysledky.filter((v) => v && v.vysledek === 'potvrzeno').length, 1);
     assert.equal(h.mock.log.length, 2);
     assert.equal(await odeslat(p.id), null); // odeslanou už znovu neposílá
-  });
-
-  it('odstup roste exponenciálně a má strop 15 minut', () => {
-    const s = [1, 2, 3, 10].map(odstupSekund);
-    assert.ok(s[0] >= 27 && s[0] <= 33);
-    assert.ok(s[1] >= 54 && s[1] <= 66);
-    assert.ok(s[2] >= 108 && s[2] <= 132);
-    assert.ok(s[3] >= 810 && s[3] <= 990);
   });
 });

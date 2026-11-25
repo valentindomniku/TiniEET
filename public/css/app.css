@@ -174,6 +174,17 @@ tfoot td { font-weight: 800; background: var(--surface-2); }
 tr.storno td { color: var(--err); }
 tr.stornovano td:not(:last-child) { text-decoration: line-through; color: var(--muted); }
 
+/* ---------- Výběr firmy ---------- */
+.firma { font-weight: 700; color: var(--accent); }
+.vyber { max-width: 720px; margin: 40px auto; text-align: center; }
+.firmy { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+.firma-btn {
+  min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.firma-btn .name { font-size: 1.4rem; font-weight: 800; }
+.firma-btn .ico { color: var(--muted); font-variant-numeric: tabular-nums; }
+
 /* ---------- Admin ---------- */
 .trzba { font-size: 1.3rem; margin: 0 0 12px; }
 .date { width: auto; }

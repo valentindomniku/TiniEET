@@ -4,6 +4,7 @@
 // Odesílá výhradně server – certifikát a klíč nikdy neopouštějí server.
 //
 //   sendRecord(platba, { prvniZaslani, overeni }) -> { vysledek, pok?, kod?, text?, varovani? }
+// Údaje poplatníka a certifikát se berou podle platba.firma (FIRMA1_*, FIRMA2_* v .env).
 //   vysledek: potvrzeno | overeno | chyba_docasna | chyba_trvala | chyba_nejasna | bez_odpovedi
 // Funkce nikdy nevyhazuje – vždy vrátí výsledek.
 const crypto = require('node:crypto');
@@ -37,17 +38,17 @@ const TRVALE_CHYBY = [2, 3, 4, 6, 7]; // chyba XML/podpisu/EIČ/velikosti – op
 /** 350.5 Kč -> "350.50" */
 const kcToEet = (kc) => kc.toFixed(2);
 
-function datovaVeta(platba) {
+function datovaVeta(platba, firma) {
   const d = {
-    eic_popl: config.eet.eic,
-    id_jednotky: String(config.eet.idJednotky),
-    id_pokl: String(config.eet.idPokl),
+    eic_popl: firma.eic,
+    id_jednotky: String(firma.idJednotky),
+    id_pokl: String(firma.idPokl),
     porad_cis: String(platba.id),
-    dat_trzby: prahaIso(platba.cas_utc),
+    dat_trzby: prahaIso(platba.cas),
     celk_trzba: kcToEet(platba.castka),
   };
   const spatne = Object.keys(d).filter((k) => !MASKY[k].test(d[k]));
-  if (spatne.length) throw new Error(`Údaje neodpovídají specifikaci: ${spatne.join(', ')} (zkontrolujte EET_* v .env)`);
+  if (spatne.length) throw new Error(`Údaje neodpovídají specifikaci: ${spatne.join(', ')} (zkontrolujte FIRMA${firma.cislo}_* v .env)`);
   return d;
 }
 
@@ -92,12 +93,12 @@ function podepis(xml, cert) {
   return sig.getSignedXml();
 }
 
-let certCache = null;
-/** Načte pokladní certifikát (.p12). Klíč zůstává jen v paměti serveru. */
-function nactiCert() {
-  if (certCache) return certCache;
-  const { cert, heslo } = config.eet;
-  if (!cert || !fs.existsSync(cert)) throw new Error('Soubor certifikátu neexistuje (EET_CERT_PATH)');
+const certCache = new Map(); // číslo firmy -> načtený certifikát
+/** Načte pokladní certifikát firmy (.p12). Klíč zůstává jen v paměti serveru. */
+function nactiCert(firma) {
+  if (certCache.has(firma.cislo)) return certCache.get(firma.cislo);
+  const { cert, heslo } = firma;
+  if (!cert || !fs.existsSync(cert)) throw new Error(`Soubor certifikátu neexistuje (FIRMA${firma.cislo}_CERT_PATH)`);
   let p12;
   try {
     p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(fs.readFileSync(cert).toString('binary')), heslo);
@@ -108,19 +109,20 @@ function nactiCert() {
   const key = [...bags(forge.pki.oids.pkcs8ShroudedKeyBag), ...bags(forge.pki.oids.keyBag)][0]?.key;
   const c = key && bags(forge.pki.oids.certBag).map((b) => b.cert).find((x) => x?.publicKey?.n?.equals(key.n));
   if (!c) throw new Error('V souboru .p12 chybí klíč nebo k němu patřící certifikát');
-  certCache = {
+  const nacteny = {
     privateKeyPem: forge.pki.privateKeyToPem(key),
     certPem: forge.pki.certificateToPem(c),
     certBase64: forge.util.encode64(forge.asn1.toDer(forge.pki.certificateToAsn1(c)).getBytes()),
     platnyDo: c.validity.notAfter,
   };
-  return certCache;
+  certCache.set(firma.cislo, nacteny);
+  return nacteny;
 }
 
-/** Stav certifikátu pro administraci (bez klíče). */
-function certInfo() {
+/** Stav certifikátu firmy pro administraci (bez klíče). */
+function certInfo(firma) {
   try {
-    return { ok: true, platnyDo: nactiCert().platnyDo };
+    return { ok: true, platnyDo: nactiCert(firma).platnyDo };
   } catch (err) {
     return { ok: false, chyba: err.message };
   }
@@ -196,15 +198,17 @@ const mock = {
 
 async function sendRecord(platba, { prvniZaslani = true, overeni = false } = {}) {
   const uuidZpravy = crypto.randomUUID(); // nové UUID pro každý pokus (spec.)
+  const firma = config.firma(platba.firma);
+  if (!firma) return { vysledek: 'chyba_docasna', text: `Firma ${platba.firma} není v .env` };
   let xml;
   try {
-    xml = sestavObalku({ uuidZpravy, prvniZaslani, overeni }, datovaVeta(platba));
+    xml = sestavObalku({ uuidZpravy, prvniZaslani, overeni }, datovaVeta(platba, firma));
   } catch (err) {
     return { vysledek: 'chyba_trvala', text: err.message };
   }
   if (!mock.zapnuto) {
     try {
-      xml = podepis(xml, nactiCert());
+      xml = podepis(xml, nactiCert(firma));
     } catch (err) {
       // Problém s certifikátem – záznam zůstane ve frontě, admin uvidí chybu.
       return { vysledek: 'chyba_docasna', text: `Certifikát: ${err.message}` };

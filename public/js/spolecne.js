@@ -65,6 +65,24 @@ function uuid() {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
+/** Stav EET v záhlaví: „EET v pořádku“, nebo počet neodeslaných tržeb. */
+function ukazFrontu(neodeslano) {
+  const f = document.getElementById('fronta');
+  f.textContent = neodeslano ? `Neodesláno do EET: ${neodeslano}` : 'EET v pořádku';
+  f.className = `pill ${neodeslano ? 'pill-warn' : 'pill-ok'}`;
+}
+
+/** Vybraná firma se pamatuje v prohlížeči tabletu (přežije obnovení stránky). */
+function nactiFirmu() {
+  try { return Number(localStorage.getItem('tinieet.firma')) || null; } catch { return null; }
+}
+function ulozFirmu(cislo) {
+  try {
+    if (cislo) localStorage.setItem('tinieet.firma', String(cislo));
+    else localStorage.removeItem('tinieet.firma');
+  } catch { /* prohlížeč nedovolí ukládat – výběr vydrží jen do obnovení stránky */ }
+}
+
 // Dialogy: tlačítka s data-zavrit zavírají
 document.addEventListener('click', (e) => { if (e.target.matches('[data-zavrit]')) e.target.closest('dialog').close(); });
 

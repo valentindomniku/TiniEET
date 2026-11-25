@@ -1,6 +1,6 @@
 'use strict';
 // Testy bez databáze: formát částky a času, sestavení zprávy podle XSD, podpis, čtení odpovědí FS.
-Object.assign(process.env, { NODE_ENV: 'test', ADMIN_PASSWORD: 'admin-heslo-123', EET_EIC: 'CZ00000019', EET_ID_JEDNOTKY: '243', EET_ID_POKL: '1' });
+Object.assign(process.env, { NODE_ENV: 'test' });
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -9,6 +9,8 @@ const { SignedXml } = require('xml-crypto');
 const { DOMParser } = require('@xmldom/xmldom');
 const { kcToEet, datovaVeta, sestavObalku, podepis, zpracujOdpoved, MASKY } = require('../src/eet');
 const { prahaIso, denUtc } = require('../src/cas');
+
+const FIRMA = { cislo: 1, eic: 'CZ00000019', idJednotky: '243', idPokl: '1' };
 
 describe('EET – formáty', () => {
   it('částka přesně podle XSD', () => {
@@ -33,7 +35,7 @@ describe('EET – formáty', () => {
   });
 
   it('datová věta a obálka mají všechny povinné údaje; overeni jen v ověřovacím módu', () => {
-    const d = datovaVeta({ id: 135, cas_utc: new Date('2027-01-09T15:45:36Z'), castka: 3264.5 });
+    const d = datovaVeta({ id: 135, cas: new Date('2027-01-09T15:45:36Z'), castka: 3264.5 }, FIRMA);
     assert.deepEqual(d, {
       eic_popl: 'CZ00000019', id_jednotky: '243', id_pokl: '1', porad_cis: '135',
       dat_trzby: '2027-01-09T16:45:36+01:00', celk_trzba: '3264.50',
@@ -63,7 +65,7 @@ describe('EET – podpis WS-Security', () => {
       privateKeyPem: forge.pki.privateKeyToPem(keys.privateKey),
       certBase64: forge.util.encode64(forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes()),
     };
-    const d = datovaVeta({ id: 1, cas_utc: new Date(), castka: 350 });
+    const d = datovaVeta({ id: 1, cas: new Date(), castka: 350 }, FIRMA);
     const signed = podepis(sestavObalku({ uuidZpravy: crypto.randomUUID(), prvniZaslani: true }, d), c);
 
     assert.match(signed, /rsa-sha256/);

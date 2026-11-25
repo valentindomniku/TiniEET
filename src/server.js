@@ -8,8 +8,10 @@ const { createApp } = require('./app');
 (async () => {
   await pool.query('SELECT 1 FROM eet LIMIT 1'); // ověří připojení k databázi a tabulky
 
-  const c = certInfo();
-  console.log(`[EET] ZAPNUTO, cert ${c.ok ? 'OK' : `CHYBA – ${c.chyba}`}, eic=${config.eet.eic}`);
+  for (const f of config.firmy) {
+    const c = certInfo(f);
+    console.log(`[EET] ${f.nazev} (IČO ${f.ico}), cert ${c.ok ? 'OK' : `CHYBA – ${c.chyba}`}, eic=${f.eic}`);
+  }
 
   const zastavWorker = spustWorker(config.workerMs);
   const server = createApp().listen(config.port, () => {

@@ -17,14 +17,29 @@ function hesloCertifikatu(hodnota) {
   return hodnota && fs.existsSync(soubor) && fs.statSync(soubor).isFile() ? fs.readFileSync(soubor, 'utf8').trim() : hodnota;
 }
 
-const adminHeslo = e.ADMIN_PASSWORD || '';
-if (!adminHeslo) throw new Error('Chybí ADMIN_PASSWORD v .env'); // jinak by šlo do administrace s prázdným heslem
+// Firmy (IČO), za které pokladna eviduje tržby: FIRMA1_*, FIRMA2_*, … v .env.
+const firmy = [];
+for (let n = 1; e[`FIRMA${n}_EIC`]; n++) {
+  firmy.push({
+    cislo: n,
+    nazev: e[`FIRMA${n}_NAZEV`] || `Firma ${n}`,
+    ico: e[`FIRMA${n}_ICO`] || '',
+    eic: e[`FIRMA${n}_EIC`],
+    idJednotky: e[`FIRMA${n}_ID_JEDNOTKY`],
+    idPokl: e[`FIRMA${n}_ID_POKL`],
+    cert: e[`FIRMA${n}_CERT_PATH`] ? path.resolve(root, e[`FIRMA${n}_CERT_PATH`]) : null,
+    heslo: hesloCertifikatu(e[`FIRMA${n}_CERT_PASSWORD`] || ''),
+  });
+}
+if (!firmy.length) throw new Error('V .env chybí údaje firmy (FIRMA1_EIC, FIRMA1_CERT_PATH, …)');
 
 module.exports = {
   root,
   test,
   port: Number(e.PORT) || 3000,
-  adminHeslo,
+  firmy,
+  /** Firma podle čísla (1, 2, …), nebo undefined. */
+  firma: (cislo) => firmy.find((f) => f.cislo === Number(cislo)),
   db: {
     host: e.DB_HOST || '127.0.0.1',
     port: Number(e.DB_PORT) || 3306,
@@ -37,12 +52,7 @@ module.exports = {
   },
   eet: {
     url: e.EET_URL || '',
-    eic: e.EET_EIC,
-    idJednotky: e.EET_ID_JEDNOTKY,
-    idPokl: e.EET_ID_POKL,
-    cert: e.EET_CERT_PATH ? path.resolve(root, e.EET_CERT_PATH) : null,
-    heslo: hesloCertifikatu(e.EET_CERT_PASSWORD || ''),
     timeoutMs: Number(e.EET_TIMEOUT_MS) || 3000,
   },
-  workerMs: Number(e.WORKER_INTERVAL_MS) || 10000,
+  workerMs: 60000, // neodeslané tržby se zkoušejí znovu každou minutu
 };

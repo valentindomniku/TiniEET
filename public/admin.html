@@ -3,26 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TiniEET – administrace</title>
+  <title>TiniEET – Administrace</title>
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">TiniEET <span class="verze" id="verze"></span> <small>administrace</small></div>
-    <button type="button" class="btn-small" id="odhlasit" hidden>Odhlásit</button>
+    <span id="firma-nazev" class="firma"></span>
+    <span id="fronta" class="pill pill-muted"></span>
+    <button type="button" class="btn-small" id="zmenit-firmu">Změnit IČO</button>
     <a href="/" class="btn btn-small">Pokladna</a>
   </header>
 
   <main>
-    <form id="login" class="card login-card" hidden novalidate>
-      <h1>Administrace</h1>
-      <label for="heslo">Heslo</label>
-      <input id="heslo" type="password" autocomplete="current-password">
-      <p class="err-text" id="login-err"></p>
-      <button type="submit" class="btn-primary btn-big">Přihlásit</button>
-    </form>
-
-    <div id="obsah" hidden>
+    <div id="obsah">
       <div id="eet"></div>
 
       <section class="section">
@@ -69,11 +63,8 @@
   <dialog id="dlg-storno">
     <form id="form-storno" novalidate>
       <div class="dlg-body">
-        <h2>Storno platby</h2>
+        <h2>Stornovat platbu?</h2>
         <p id="ds-popis"></p>
-        <label for="ds-duvod">Důvod storna</label>
-        <input id="ds-duvod" maxlength="200" autocomplete="off">
-        <p class="hint">Původní platba zůstane uložená, storno se zapíše jako nový záporný záznam.</p>
         <p class="err-text" id="ds-err"></p>
       </div>
       <div class="dlg-actions">
