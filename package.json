@@ -1,6 +1,6 @@
 {
   "name": "tinieet",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "system for EET 2.0",
   "scripts": {
     "start": "node src/server.js",

@@ -78,12 +78,13 @@ input.big { font-size: 1.8rem; font-weight: 700; min-height: 64px; text-align: r
 .topbar {
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 10px 16px;
+  min-height: 76px; /* stejná výška s tlačítky i bez nich (úvodní výběr firmy) */
+  padding: 14px 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
-.brand { font-weight: 800; font-size: 1.2rem; letter-spacing: .02em; margin-right: auto; }
-.brand .verze { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.brand { font-weight: 800; font-size: 1.6rem; letter-spacing: .02em; margin-right: auto; }
+.brand .verze { font-weight: 600; color: var(--muted); font-size: .9rem; }
 .brand small { font-weight: 600; color: var(--muted); margin-left: 8px; font-size: .85rem; }
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -164,6 +165,7 @@ dialog::backdrop { background: rgba(30, 24, 20, .45); }
 
 /* ---------- Seznamy a tabulky ---------- */
 .section { margin-top: 28px; }
+.section:first-child { margin-top: 0; } /* první sekce hned pod lištou bez mezery navíc */
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 table { width: 100%; border-collapse: collapse; font-size: .98rem; }
