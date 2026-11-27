@@ -1,5 +1,5 @@
 'use strict';
-// Evidence tržeb EET 2.0 podle oficiální specifikace rozhraní v4.1 (docs/eet/: XSD, WSDL, příklad).
+// Evidence tržeb EET 2.0 podle oficiální specifikace rozhraní v4.1 (eet.gov.cz → Dokumenty k EET 2.0).
 // SOAP 1.1 přes HTTPS, podpis WS-Security (jen soap:Body, exc-c14n, SHA-256, RSA-SHA256).
 // Odesílá výhradně server – certifikát a klíč nikdy neopouštějí server.
 //

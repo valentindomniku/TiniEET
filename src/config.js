@@ -1,10 +1,12 @@
 'use strict';
-// Veškerá konfigurace z .env (popis v README). Žádné tajné údaje v kódu.
+// Veškerá konfigurace ze souboru .env v kořeni projektu. Žádné tajné údaje v kódu.
 const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-process.loadEnvFile(path.join(root, '.env')); // vestavěné v Node.js, hodnoty už nastavené v prostředí mají přednost
+// Vestavěné v Node.js; hodnoty už nastavené v prostředí mají přednost.
+if (fs.existsSync(path.join(root, '.env'))) process.loadEnvFile(path.join(root, '.env'));
+else if (process.env.NODE_ENV !== 'test') throw new Error(`Chybí soubor .env v ${root}`);
 
 const e = process.env;
 const test = e.NODE_ENV === 'test';

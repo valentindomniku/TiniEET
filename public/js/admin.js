@@ -3,7 +3,8 @@ const $ = (id) => document.getElementById(id);
 
 // Administrace ukazuje data firmy vybrané v pokladně (/admin?firma=1).
 const firma = Number(new URLSearchParams(location.search).get('firma')) || nactiFirmu();
-if (!firma) location.replace('/');
+if (firma) ulozFirmu(firma); // pokladna pak ukáže stejnou firmu
+else location.replace('/');
 
 // Změnit firmu = zapomenout výběr a vrátit se na úvodní výběr v pokladně.
 $('zmenit-firmu').onclick = () => {
@@ -46,6 +47,11 @@ async function nacti() {
   try {
     await Promise.all([nactiStav(), nactiPrehled(), nactiSluzby()]);
   } catch (err) {
+    if (err.message === 'Neznámá firma') { // firma mezitím zmizela z .env
+      ulozFirmu(null);
+      location.replace('/');
+      return;
+    }
     toast(err.message, 'err');
   }
 }
@@ -85,6 +91,7 @@ async function znovu(id) {
 }
 
 async function nactiPrehled() {
+  if (!$('datum').value) $('datum').value = dnesPraha(); // smazané datum = dnešek
   const { souhrn, platby } = await api('GET', `/api/admin/prehled?firma=${firma}&datum=${$('datum').value}`);
   $('trzba').textContent = kc(souhrn.castka);
   $('pocet').textContent = `(${souhrn.pocet} záznamů včetně storen)`;
@@ -132,7 +139,8 @@ $('nova-sluzba').onsubmit = async (e) => {
   }
 };
 
-$('datum').value = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Prague' });
+const dnesPraha = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Prague' });
+$('datum').value = dnesPraha();
 $('datum').onchange = () => nactiPrehled().catch((err) => toast(err.message, 'err'));
 
 if (firma) nacti();

@@ -98,18 +98,6 @@ input.big { font-size: 1.8rem; font-weight: 700; min-height: 64px; text-align: r
 
 main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 
-/* ---------- Přihlášení ---------- */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
-}
-.login-card { width: 100%; max-width: 420px; margin: 40px auto; }
-.login-card h1 { font-size: 1.8rem; }
-.login-card .btn-primary { width: 100%; margin-top: 22px; }
-
 /* ---------- Tlačítka služeb ---------- */
 .services {
   display: grid;
@@ -148,7 +136,6 @@ dialog::backdrop { background: rgba(30, 24, 20, .45); }
 }
 .dlg-actions > button { flex: 1; }
 
-.hint { font-size: .9rem; color: var(--muted); margin-top: 6px; }
 .err-text { color: var(--err); font-weight: 600; min-height: 1.4em; margin: 8px 0 0; }
 
 /* ---------- Toast ---------- */
@@ -188,7 +175,6 @@ tr.stornovano td:not(:last-child) { text-decoration: line-through; color: var(--
 .firma-btn .ico { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* ---------- Admin ---------- */
-.trzba { font-size: 1.3rem; margin: 0 0 12px; }
 .date { width: auto; }
 .akce { display: flex; gap: 8px; }
 .inline-form { margin-top: 12px; }

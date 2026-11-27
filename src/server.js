@@ -6,7 +6,7 @@ const { certInfo } = require('./eet');
 const { createApp } = require('./app');
 
 (async () => {
-  await pool.query('SELECT 1 FROM eet LIMIT 1'); // ověří připojení k databázi a tabulky
+  await pool.query('SELECT id, firma FROM eet LIMIT 1'); // ověří připojení k databázi a aktuální tabulku eet
 
   for (const f of config.firmy) {
     const c = certInfo(f);
